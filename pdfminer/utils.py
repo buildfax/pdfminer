@@ -12,40 +12,45 @@ def apply_png_predictor(pred, colors, columns, bitspercomponent, data):
     if bitspercomponent != 8:
         # unsupported
         raise ValueError(bitspercomponent)
-    nbytes = colors*columns*bitspercomponent/8
+    nbytes = colors * columns * bitspercomponent / 8
     i = 0
-    buf = ''
+    buf = []
     line0 = '\x00' * columns
-    while i < len(data):
-        pred = data[i]
-        i += 1
-        line1 = data[i:i+nbytes]
-        i += nbytes
-        if pred == '\x00':
+    for i in range(0, len(data), nbytes + 1):
+        pred = ord(data[i])
+        line1 = data[i + 1:i + nbytes + 1]
+        if pred != 2:
+            print repr(pred), repr(line1)
+        if pred == 0:
             # PNG none
-            buf += line1
-        elif pred == '\x01':
+            pass
+        elif pred == 1:
             # PNG sub (UNTESTED)
+            l = []
             c = 0
             for b in line1:
-                c = (c+ord(b)) & 255
-                buf += chr(c)
-        elif pred == '\x02':
+                c = (c + ord(b)) & 255
+                l.append(chr(c))
+            line1 = ''.join(l)
+        elif pred == 2:
             # PNG up
-            for (a,b) in zip(line0,line1):
-                c = (ord(a)+ord(b)) & 255
-                buf += chr(c)
-        elif pred == '\x03':
+            line1 = ''.join(
+                chr((ord(a) + ord(b)) & 255) for (a, b) in
+                zip(line0, line1))
+        elif pred == 3:
             # PNG average (UNTESTED)
+            l = []
             c = 0
-            for (a,b) in zip(line0,line1):
-                c = ((c+ord(a)+ord(b))/2) & 255
-                buf += chr(c)
+            for (a, b) in zip(line0, line1):
+                c = ((c + ord(a) + ord(b)) / 2) & 255
+                l.append(chr(c))
+            line1 = ''.join(l)
         else:
             # unsupported
             raise ValueError(pred)
+        buf.append(line1)
         line0 = line1
-    return buf
+    return ''.join(buf)
 
 
 ##  Matrix operations
