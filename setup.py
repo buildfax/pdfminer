@@ -20,10 +20,9 @@ PDF parser that can be used for other purposes instead of text analysis.''',
     url='http://www.unixuser.org/~euske/python/pdfminer/index.html',
     packages=[
     'pdfminer',
-    'pdfminer.cmap',
     ],
     package_data={
-    'pdfminer.cmap': ['*.pickle.gz'],
+    'pdfminer': ['cmap/*.pickle.gz'],
     },
     scripts=[
     'tools/pdf2txt.py',
