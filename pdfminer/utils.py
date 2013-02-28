@@ -279,14 +279,22 @@ class Plane(object):
                 yield (x,y)
         return
 
+    # get points with data from grid in range
     def _gridrange(self, (x0,y0,x1,y1)):
         gx0 = int(x0)/self.gridsize
         gx1 = int(x1+self.gridsize)/self.gridsize
         gy0 = int(y0)/self.gridsize
         gy1 = int(y1+self.gridsize)/self.gridsize
-        points = ( (x,y) for (x,y) in self._grid.keys()
-                   if gx0 <= x < gx1 and gy0 <= y < gy1 )
-        for point in points:
+        if (gx1 - gx0) * (gy1 - gy0) <= len(self._grid):
+            for y in xrange(gy0, gy1):
+                for x in xrange(gx0, gx1):
+                    if (x,y) in self._grid:
+                        yield (x,y)
+
+            return
+
+        for point in ( (x,y) for (x,y) in self._grid.keys()
+                if gx0 <= x < gx1 and gy0 <= y < gy1 ):
             yield point
 
     # add(obj): place an object.
