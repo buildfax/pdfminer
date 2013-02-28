@@ -319,33 +319,21 @@ class Plane(object):
 
     # remove(obj): displace an object.
     def remove(self, obj):
-        x0, y0, x1, y1 = obj.x0, obj.y0, obj.x1, obj.y1
-        if (x1 - x0) * (y1 - y0) > self.largearea:
-            self._large.discard(obj)
+        for k in self._gridrange((obj.x0, obj.y0, obj.x1, obj.y1)):
+            try:
+                self._grid[k].discard(obj)
+                if not self._grid[k]:
+                    del self._grid[k]
 
-        else:
-            for k in self._gridrange((x0, y0, x1, y1)):
-                try:
-                    self._grid[k].discard(obj)
-                    if not self._grid[k]:
-                        del self._grid[k]
-
-                except (KeyError, ValueError):
-                    pass
+            except (KeyError, ValueError):
+                pass
 
         self._objs.discard(obj)
+        self._large.discard(obj)
         return
 
     # find(): finds objects that are in a certain area.
     def find(self, (x0,y0,x1,y1)):
-        if (x1 - x0) * (y1 - y0) > self.largearea:
-            for obj in self._objs:
-                if (obj.x1 > x0 and x1 > obj.x0 and
-                        obj.y1 > y0 and y1 > obj.y0):
-                    yield obj
-
-            return
-
         done = set()
         for k in self._gridrange((x0,y0,x1,y1)):
             for obj in self._grid[k]:
