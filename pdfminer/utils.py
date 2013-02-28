@@ -222,7 +222,7 @@ def matrix2str((a,b,c,d,e,f)):
 class ObjIdRange(object):
 
     "A utility class to represent a range of object IDs."
-    
+
     def __init__(self, start, nobjs):
         self.start = start
         self.nobjs = nobjs
@@ -250,10 +250,12 @@ class ObjIdRange(object):
 ##
 class Plane(object):
 
-    def __init__(self, objs=None, gridsize=50):
+    def __init__(self, objs=None, gridsize=50, largearea=1000000):
         self._objs = set()
         self._grid = {}
+        self._large = set()
         self.gridsize = gridsize
+        self.largearea = largearea
         if objs is not None:
             for obj in objs:
                 self.add(obj)
@@ -276,38 +278,80 @@ class Plane(object):
             for x in drange(x0, x1, self.gridsize):
                 yield (x,y)
         return
-    
+
+    def _gridrange(self, (x0,y0,x1,y1)):
+        gx0 = int(x0)/self.gridsize
+        gx1 = int(x1+self.gridsize)/self.gridsize
+        gy0 = int(y0)/self.gridsize
+        gy1 = int(y1+self.gridsize)/self.gridsize
+        points = ( (x,y) for (x,y) in self._grid.keys()
+                   if gx0 <= x < gx1 and gy0 <= y < gy1 )
+        for point in points:
+            yield point
+
     # add(obj): place an object.
     def add(self, obj):
-        for k in self._getrange((obj.x0, obj.y0, obj.x1, obj.y1)):
-            if k not in self._grid:
-                r = []
-                self._grid[k] = r
-            else:
-                r = self._grid[k]
-            r.append(obj)
+        x0, y0, x1, y1 = obj.x0, obj.y0, obj.x1, obj.y1
+        if (x1 - x0) * (y1 - y0) > self.largearea:
+            self._large.add(obj)
+
+        else:
+            for k in self._getrange((x0, y0, x1, y1)):
+                if k not in self._grid:
+                    r = set()
+                    self._grid[k] = r
+
+                else:
+                    r = self._grid[k]
+
+                r.add(obj)
+
         self._objs.add(obj)
         return
 
     # remove(obj): displace an object.
     def remove(self, obj):
-        for k in self._getrange((obj.x0, obj.y0, obj.x1, obj.y1)):
-            try:
-                self._grid[k].remove(obj)
-            except (KeyError, ValueError):
-                pass
-        self._objs.remove(obj)
+        x0, y0, x1, y1 = obj.x0, obj.y0, obj.x1, obj.y1
+        if (x1 - x0) * (y1 - y0) > self.largearea:
+            self._large.discard(obj)
+
+        else:
+            for k in self._gridrange((x0, y0, x1, y1)):
+                try:
+                    self._grid[k].discard(obj)
+                    if not self._grid[k]:
+                        del self._grid[k]
+
+                except (KeyError, ValueError):
+                    pass
+
+        self._objs.discard(obj)
         return
 
     # find(): finds objects that are in a certain area.
     def find(self, (x0,y0,x1,y1)):
+        if (x1 - x0) * (y1 - y0) > self.largearea:
+            for obj in self._objs:
+                if (obj.x1 > x0 and x1 > obj.x0 and
+                        obj.y1 > y0 and y1 > obj.y0):
+                    yield obj
+
+            return
+
         done = set()
-        for k in self._getrange((x0,y0,x1,y1)):
-            if k not in self._grid: continue
+        for k in self._gridrange((x0,y0,x1,y1)):
             for obj in self._grid[k]:
-                if obj in done: continue
+                if obj in done:
+                    continue
+
                 done.add(obj)
-                if (obj.x1 <= x0 or x1 <= obj.x0 or
-                    obj.y1 <= y0 or y1 <= obj.y0): continue
+                if (obj.x1 > x0 and x1 > obj.x0 and
+                        obj.y1 > y0 and y1 > obj.y0):
+                    yield obj
+
+        for obj in self._large:
+            if (obj.x1 > x0 and x1 > obj.x0 and
+                    obj.y1 > y0 and y1 > obj.y0):
                 yield obj
+
         return
