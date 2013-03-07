@@ -631,7 +631,8 @@ class PDFPageInterpreter(object):
         except KeyError:
             if STRICT:
                 raise PDFInterpreterError('Undefined Font id: %r' % fontid)
-            return
+            self.textstate.font = PDFType1Font(
+                self.rsrcmgr, {'BaseFont':'Times-Roman'})
         self.textstate.fontsize = fontsize
         return
     # setrendering
