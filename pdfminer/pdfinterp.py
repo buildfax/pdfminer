@@ -629,7 +629,6 @@ class PDFPageInterpreter(object):
         try:
             self.textstate.font = self.fontmap[literal_name(fontid)]
         except KeyError:
-            raise
             if STRICT:
                 raise PDFInterpreterError('Undefined Font id: %r' % fontid)
             return
